@@ -1,5 +1,5 @@
 import React from 'react'
-import { ImagePicker, Permissions } from 'expo'
+import { Constants, ImagePicker, Permissions } from 'expo'
 import {
   StyleSheet,
   Text,
@@ -8,29 +8,34 @@ import {
   Button,
   ImageEditor
 } from 'react-native'
+import firebaseSvc from '../config/firebaseSvc'
 
-import firebaseSDK from '../config/firebaseSDK'
+class CreateAccount extends React.Component {
+  static navigationOptions = {
+    title: 'Scv Chatter'
+  }
 
-export default class Signup extends React.Component {
   state = {
-    name: 'no name',
-    email: 'test@live.com',
-    password: '123456',
+    name: 'Alex B',
+    email: 'test3@gmail.com',
+    password: 'test123',
     avatar: ''
   }
 
   onPressCreate = async () => {
+    console.log('create account... email:' + this.state.email)
     try {
       const user = {
         name: this.state.name,
         email: this.state.email,
-        password: this.state.password
+        password: this.state.password,
+        avatar: this.state.avatar
       }
-      await firebaseSDK.createAccount(user)
+      await firebaseSvc.createAccount(user)
     } catch ({ message }) {
       console.log('create account failed. catch error:' + message)
     }
-  };
+  }
 
   onChangeTextEmail = email => this.setState({ email })
   onChangeTextPassword = password => this.setState({ password })
@@ -43,6 +48,7 @@ export default class Signup extends React.Component {
     try {
       // only if user allows permission to camera roll
       if (cameraRollPerm === 'granted') {
+        console.log('choosing image granted...')
         let pickerResult = await ImagePicker.launchImageLibraryAsync({
           allowsEditing: true,
           aspect: [4, 3]
@@ -54,6 +60,7 @@ export default class Signup extends React.Component {
         var wantedMaxSize = 150
         var rawheight = pickerResult.height
         var rawwidth = pickerResult.width
+
         var ratio = rawwidth / rawheight
         var wantedwidth = wantedMaxSize
         var wantedheight = wantedMaxSize / ratio
@@ -62,6 +69,7 @@ export default class Signup extends React.Component {
           wantedwidth = wantedMaxSize * ratio
           wantedheight = wantedMaxSize
         }
+        console.log('scale image to x:' + wantedwidth + ' y:' + wantedheight)
         let resizedUri = await new Promise((resolve, reject) => {
           ImageEditor.cropImage(
             pickerResult.uri,
@@ -75,9 +83,15 @@ export default class Signup extends React.Component {
             () => reject()
           )
         })
-        let uploadUrl = await firebaseSDK.uploadImage(resizedUri)
-        this.setState({ avatar: uploadUrl })
-        await firebaseSDK.updateAvatar(uploadUrl)
+        let uploadUrl = await firebaseSvc.uploadImage(resizedUri)
+        console.log('uploadUrl', uploadUrl)
+        //let uploadUrl = await firebaseSvc.uploadImageAsync(resizedUri);
+        await this.setState({ avatar: uploadUrl })
+        console.log(' - await upload successful url:' + uploadUrl)
+        console.log(
+          ' - await upload successful avatar state:' + this.state.avatar
+        )
+        await firebaseSvc.updateAvatar(uploadUrl) //might failed
       }
     } catch (err) {
       console.log('onImageUpload error:' + err.message)
@@ -91,7 +105,7 @@ export default class Signup extends React.Component {
         <Text style={styles.title}>Email:</Text>
         <TextInput
           style={styles.nameInput}
-          placeHolder="test@live.com"
+          placeHolder="test3@gmail.com"
           onChangeText={this.onChangeTextEmail}
           value={this.state.email}
         />
@@ -108,12 +122,12 @@ export default class Signup extends React.Component {
           value={this.state.name}
         />
         <Button
-          title="Signup"
+          title="Create Account"
           style={styles.buttonText}
           onPress={this.onPressCreate}
         />
         <Button
-          title="Upload Avatar"
+          title="Upload Avatar Image"
           style={styles.buttonText}
           onPress={this.onImageUpload}
         />
@@ -122,7 +136,7 @@ export default class Signup extends React.Component {
   }
 }
 
-const offset = 16;
+const offset = 16
 const styles = StyleSheet.create({
   title: {
     marginTop: offset,
@@ -142,3 +156,5 @@ const styles = StyleSheet.create({
     fontSize: 42
   }
 })
+
+export default CreateAccount
